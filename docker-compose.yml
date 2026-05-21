@@ -12,7 +12,7 @@ services:
     container_name: waplus_app
     restart: always
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - SECRET_KEY=${SECRET_KEY:-cle_flask_secrete_dokploy_2026}
       - DATABASE_URL=sqlite:////app/data/whatsapp_bulk.db
