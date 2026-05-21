@@ -83,7 +83,14 @@ def send_whatsapp_message(contact, message_text):
     try:
         logger.info(f"Envoi du message à OpenWA : {url}")
         response = requests.post(url, json=payload, headers=headers, timeout=15)
-        response_data = response.json()
+        
+        try:
+            response_data = response.json()
+        except ValueError:
+            new_message.status = "failed"
+            db.session.commit()
+            logger.error(f"La passerelle OpenWA a retourné une réponse non-JSON (Code HTTP {response.status_code})")
+            return False, f"Réponse non-JSON de la passerelle (Code HTTP {response.status_code})"
         
         # D'après la spécification OpenWA, la réponse est au format { "success": true, "data": { "id": "..." } }
         if response.status_code in (200, 201) and response_data.get('success'):
@@ -118,7 +125,7 @@ def test_whatsapp_connection():
     if not api_url:
         return False, "URL de l'API OpenWA non configurée."
         
-    url = f"{api_url}/api/sessions/{session_id}/status"
+    url = f"{api_url}/api/sessions/{session_id}"
     headers = {}
     if api_key:
         headers["X-API-Key"] = api_key
@@ -126,7 +133,11 @@ def test_whatsapp_connection():
     try:
         logger.info(f"Vérification de la connexion OpenWA sur : {url}")
         response = requests.get(url, headers=headers, timeout=10)
-        response_data = response.json()
+        
+        try:
+            response_data = response.json()
+        except ValueError:
+            return False, f"La passerelle OpenWA a retourné une réponse non-JSON (Code HTTP {response.status_code}). Veuillez vérifier l'URL de votre instance."
         
         if response.status_code == 200 and response_data.get('success'):
             status_data = response_data.get('data', {})
@@ -134,6 +145,10 @@ def test_whatsapp_connection():
             return True, f"Connexion à OpenWA réussie ! Statut de la session '{session_id}' : {session_status}"
         else:
             error_msg = response_data.get('error', {}).get('message', 'Erreur d\'autorisation OpenWA')
+            if response.status_code == 401:
+                error_msg = "Clé d'API (X-API-Key) invalide ou manquante."
+            elif response.status_code == 404:
+                error_msg = f"La session '{session_id}' n'a pas été trouvée sur l'instance."
             return False, f"Erreur de connexion ({response.status_code}) : {error_msg}"
     except Exception as e:
         return False, f"Exception de connexion à OpenWA : {str(e)}"
