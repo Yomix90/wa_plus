@@ -842,17 +842,17 @@ function initSettings() {
             
             const auto_reply_enabled = document.getElementById('setting-auto-reply').checked;
             const system_prompt = document.getElementById('setting-prompt').value;
-            const whatsapp_token = document.getElementById('setting-whatsapp-token').value;
-            const phone_number_id = document.getElementById('setting-phone-id').value;
-            const webhook_verify_token = document.getElementById('setting-verify-token').value;
+            const openwa_api_url = document.getElementById('setting-openwa-url').value;
+            const openwa_api_key = document.getElementById('setting-openwa-key').value;
+            const openwa_session_id = document.getElementById('setting-openwa-session').value;
             const gemini_api_key = document.getElementById('setting-gemini-key').value;
             
             const payload = {
                 auto_reply_enabled,
                 system_prompt,
-                whatsapp_token,
-                phone_number_id,
-                webhook_verify_token,
+                openwa_api_url,
+                openwa_api_key,
+                openwa_session_id,
                 gemini_api_key
             };
             
@@ -942,10 +942,10 @@ async function loadSettingsData() {
         if (response.ok) {
             document.getElementById('setting-auto-reply').checked = data.auto_reply_enabled;
             document.getElementById('setting-prompt').value = data.system_prompt;
-            document.getElementById('setting-whatsapp-token').value = data.whatsapp_token;
-            document.getElementById('setting-phone-id').value = data.phone_number_id;
-            document.getElementById('setting-verify-token').value = data.webhook_verify_token;
-            document.getElementById('setting-gemini-key').value = data.gemini_api_key;
+            document.getElementById('setting-openwa-url').value = data.openwa_api_url || '';
+            document.getElementById('setting-openwa-key').value = data.openwa_api_key || '';
+            document.getElementById('setting-openwa-session').value = data.openwa_session_id || '';
+            document.getElementById('setting-gemini-key').value = data.gemini_api_key || '';
         }
     } catch (e) {
         console.error("Erreur de chargement des paramètres :", e);

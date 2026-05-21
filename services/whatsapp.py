@@ -6,28 +6,40 @@ from database import db, AIConfig, Message
 logger = logging.getLogger(__name__)
 
 def get_whatsapp_credentials():
-    """Récupère les identifiants depuis la BDD (AIConfig) ou à défaut depuis la config Flask."""
+    """Récupère les identifiants OpenWA depuis la BDD (AIConfig) ou à défaut depuis la config Flask."""
     try:
         config = AIConfig.get_config()
-        token = config.whatsapp_token or current_app.config.get('WHATSAPP_TOKEN', '')
-        phone_id = config.phone_number_id or current_app.config.get('PHONE_NUMBER_ID', '')
-        return token.strip(), phone_id.strip()
+        api_url = config.openwa_api_url or current_app.config.get('OPENWA_API_URL', 'https://openwa-waplus-hmvwgl-24722a-51-210-177-24.sslip.io')
+        api_key = config.openwa_api_key or current_app.config.get('OPENWA_API_KEY', '')
+        session_id = config.openwa_session_id or current_app.config.get('OPENWA_SESSION_ID', 'default')
+        
+        # S'assurer que l'URL ne se termine pas par un slash
+        api_url = api_url.strip().rstrip('/')
+        return api_url, api_key.strip(), session_id.strip()
     except Exception as e:
-        logger.error(f"Erreur lors de la récupération des identifiants WhatsApp: {e}")
-        return current_app.config.get('WHATSAPP_TOKEN', ''), current_app.config.get('PHONE_NUMBER_ID', '')
+        logger.error(f"Erreur lors de la récupération des identifiants OpenWA: {e}")
+        return (
+            current_app.config.get('OPENWA_API_URL', 'https://openwa-waplus-hmvwgl-24722a-51-210-177-24.sslip.io').rstrip('/'),
+            current_app.config.get('OPENWA_API_KEY', ''),
+            current_app.config.get('OPENWA_SESSION_ID', 'default')
+        )
 
-def clean_phone_for_meta(phone):
+def clean_phone_for_openwa(phone):
     """
-    Nettoie le numéro pour l'API Meta Cloud (uniquement les chiffres, pas de '+').
+    Nettoie le numéro pour OpenWA (uniquement les chiffres, suivi de @c.us).
     Le numéro en BDD est au format E.164 (ex: +33612345678).
     """
     if not phone:
         return ""
-    return "".join(c for c in str(phone) if c.isdigit())
+    # Ne garder que les chiffres
+    digits = "".join(c for c in str(phone) if c.isdigit())
+    if not digits.endswith("@c.us"):
+        return f"{digits}@c.us"
+    return digits
 
 def send_whatsapp_message(contact, message_text):
     """
-    Envoie un message WhatsApp via l'API Cloud de Meta.
+    Envoie un message WhatsApp via la passerelle OpenWA.
     Enregistre ou met à jour le statut du message en BDD.
     
     :param contact: Instance du modèle Contact
@@ -38,27 +50,24 @@ def send_whatsapp_message(contact, message_text):
         logger.warning(f"Tentative d'envoi à un contact opt-out: {contact.phone}")
         return False, "Le contact s'est désabonné (opt-out)"
         
-    token, phone_number_id = get_whatsapp_credentials()
+    api_url, api_key, session_id = get_whatsapp_credentials()
     
-    if not token or not phone_number_id or token == 'EAA_PLACEHOLDER':
-        logger.error("Identifiants WhatsApp Business manquants ou non configurés.")
-        return False, "Identifiants WhatsApp manquants ou invalides"
+    if not api_url:
+        logger.error("URL de l'API OpenWA manquante.")
+        return False, "URL de l'API OpenWA manquante"
 
-    cleaned_phone = clean_phone_for_meta(contact.phone)
-    url = f"https://graph.facebook.com/v18.0/{phone_number_id}/messages"
+    cleaned_phone = clean_phone_for_openwa(contact.phone)
+    url = f"{api_url}/api/sessions/{session_id}/messages/send-text"
     
     headers = {
-        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
+    if api_key:
+        headers["X-API-Key"] = api_key
     
     payload = {
-        "messaging_product": "whatsapp",
-        "to": cleaned_phone,
-        "type": "text",
-        "text": {
-            "body": message_text
-        }
+        "chatId": cleaned_phone,
+        "text": message_text
     }
 
     # Création initiale du message en BDD avec statut 'pending'
@@ -72,54 +81,59 @@ def send_whatsapp_message(contact, message_text):
     db.session.commit()
 
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        logger.info(f"Envoi du message à OpenWA : {url}")
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         response_data = response.json()
         
-        if response.status_code == 200:
+        # D'après la spécification OpenWA, la réponse est au format { "success": true, "data": { "id": "..." } }
+        if response.status_code in (200, 201) and response_data.get('success'):
             # Succès d'envoi
-            meta_msg_id = response_data.get('messages', [{}])[0].get('id', 'unknown')
+            msg_data = response_data.get('data', {})
+            openwa_msg_id = msg_data.get('id') if isinstance(msg_data, dict) else 'unknown'
             new_message.status = "sent"
-            new_message.meta_message_id = meta_msg_id
+            new_message.openwa_message_id = openwa_msg_id
             db.session.commit()
-            logger.info(f"Message envoyé avec succès à {contact.phone}. Meta ID: {meta_msg_id}")
-            return True, meta_msg_id
+            logger.info(f"Message envoyé avec succès via OpenWA à {contact.phone}. Message ID: {openwa_msg_id}")
+            return True, openwa_msg_id
         else:
-            # Erreur renvoyée par Meta
-            error_details = response_data.get('error', {}).get('message', 'Erreur inconnue')
+            # Erreur renvoyée par OpenWA
+            error_details = response_data.get('error', {}).get('message', 'Erreur de la passerelle OpenWA')
             new_message.status = "failed"
             db.session.commit()
-            logger.error(f"Erreur API Meta WhatsApp ({response.status_code}): {error_details}")
+            logger.error(f"Erreur API OpenWA ({response.status_code}): {error_details}")
             return False, error_details
             
     except requests.exceptions.RequestException as e:
         # Erreur réseau ou timeout
         new_message.status = "failed"
         db.session.commit()
-        logger.error(f"Erreur réseau lors de l'envoi WhatsApp à {contact.phone}: {e}")
+        logger.error(f"Erreur réseau lors de l'envoi OpenWA à {contact.phone}: {e}")
         return False, str(e)
 
 def test_whatsapp_connection():
     """
-    Vérifie la validité du Token et du Phone Number ID en interrogeant
-    le profil du numéro de téléphone sur le Graph API (sans envoyer de message).
+    Vérifie la connexion à la passerelle OpenWA et le statut de la session.
     """
-    token, phone_number_id = get_whatsapp_credentials()
-    if not token or not phone_number_id or token == 'EAA_PLACEHOLDER':
-        return False, "Identifiants non saisis ou configurés par défaut."
+    api_url, api_key, session_id = get_whatsapp_credentials()
+    if not api_url:
+        return False, "URL de l'API OpenWA non configurée."
         
-    url = f"https://graph.facebook.com/v18.0/{phone_number_id}"
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    url = f"{api_url}/api/sessions/{session_id}/status"
+    headers = {}
+    if api_key:
+        headers["X-API-Key"] = api_key
     
     try:
+        logger.info(f"Vérification de la connexion OpenWA sur : {url}")
         response = requests.get(url, headers=headers, timeout=10)
         response_data = response.json()
-        if response.status_code == 200:
-            verified_name = response_data.get('verified_name', 'Numéro WhatsApp Business')
-            return True, f"Connexion réussie ! Compte validé : {verified_name}"
+        
+        if response.status_code == 200 and response_data.get('success'):
+            status_data = response_data.get('data', {})
+            session_status = status_data.get('status', 'unknown')
+            return True, f"Connexion à OpenWA réussie ! Statut de la session '{session_id}' : {session_status}"
         else:
-            error_msg = response_data.get('error', {}).get('message', 'Erreur d\'autorisation Meta')
+            error_msg = response_data.get('error', {}).get('message', 'Erreur d\'autorisation OpenWA')
             return False, f"Erreur de connexion ({response.status_code}) : {error_msg}"
     except Exception as e:
-        return False, f"Exception de connexion : {str(e)}"
+        return False, f"Exception de connexion à OpenWA : {str(e)}"

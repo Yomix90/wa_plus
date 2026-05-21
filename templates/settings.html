@@ -48,21 +48,20 @@
                 <!-- Section Crédentiels d'APIs -->
                 <div>
                     <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--text-primary);">Identifiants de Connexions</h3>
-                    
-                    <!-- WhatsApp Settings -->
+                                        <!-- OpenWA Settings -->
                     <div class="form-group">
-                        <label for="setting-whatsapp-token">WhatsApp System User Token (Jeton Meta)</label>
-                        <input type="password" class="form-control" id="setting-whatsapp-token" placeholder="EAAaBbCc123...">
+                        <label for="setting-openwa-url">URL de l'API de votre instance OpenWA</label>
+                        <input type="text" class="form-control" id="setting-openwa-url" placeholder="https://openwa-waplus-hmvwgl-24722a-51-210-177-24.sslip.io">
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group" style="flex: 1;">
-                            <label for="setting-phone-id">ID Numéro de Téléphone (Phone ID)</label>
-                            <input type="text" class="form-control" id="setting-phone-id" placeholder="Ex: 123456789012345">
+                            <label for="setting-openwa-key">Clé d'API OpenWA (Optionnelle)</label>
+                            <input type="password" class="form-control" id="setting-openwa-key" placeholder="Entrez la clé X-API-Key si configurée">
                         </div>
                         <div class="form-group" style="flex: 1;">
-                            <label for="setting-verify-token">Verify Token Webhook (Choix libre)</label>
-                            <input type="text" class="form-control" id="setting-verify-token" placeholder="Ex: mon_token_secret_123">
+                            <label for="setting-openwa-session">Identifiant de session OpenWA (Session ID)</label>
+                            <input type="text" class="form-control" id="setting-openwa-session" placeholder="Par défaut : default">
                         </div>
                     </div>
                     
@@ -111,16 +110,16 @@
             <div class="card glass" style="padding: 1.25rem 1.5rem; font-size: 0.85rem; border-color: rgba(83, 189, 235, 0.2)">
                 <h3 style="color: var(--status-success); font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                     <i data-lucide="link" style="width: 18px;"></i>
-                    Configuration du Webhook
+                    Liaison du Webhook OpenWA
                 </h3>
                 <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
-                    Pour recevoir les messages clients, connectez votre console Meta Developers à l'URL suivante :
+                    Pour que WaPlus reçoive les messages entrants reçus par votre numéro OpenWA, renseignez l'URL suivante dans la configuration des Webhooks de votre instance OpenWA :
                 </p>
                 <code style="background-color: var(--bg-tertiary); padding: 0.4rem 0.6rem; border-radius: 6px; display: block; font-size: 0.8rem; border: 1px solid var(--border-color); overflow-x: auto; white-space: nowrap; margin-bottom: 0.75rem;">
-                    https://&lt;votre-domaine&gt;/webhook
+                    https://&lt;votre-domaine-waplus&gt;/webhook
                 </code>
                 <p style="color: var(--text-muted); font-size: 0.78rem;">
-                    Le "Verify Token" saisi sur Meta doit être identique à votre <strong>Verify Token Webhook</strong> configuré ci-contre.
+                    Dans la configuration d'OpenWA, assurez-vous d'abonner cette URL à l'événement <strong>message.received</strong> afin d'activer les réponses automatiques Gemini.
                 </p>
             </div>
         </div>

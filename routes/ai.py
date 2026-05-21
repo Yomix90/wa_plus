@@ -9,7 +9,7 @@ ai_bp = Blueprint('ai', __name__)
 
 def mask_credential(value, prefix_len=6, suffix_len=4):
     """
-    Masque un token ou une clé API pour la sécurité d'affichage (ex: EAAxxx...abcd).
+    Masque un token ou une clé API pour la sécurité d'affichage (ex: AIzaxxx...abcd).
     """
     if not value or value == 'EAA_PLACEHOLDER' or value == 'AIza_PLACEHOLDER':
         return ""
@@ -28,43 +28,45 @@ def get_ai_config():
         "id": config.id,
         "system_prompt": config.system_prompt,
         "auto_reply_enabled": config.auto_reply_enabled,
-        # Clés masquées pour l'affichage dans le frontend
-        "whatsapp_token": mask_credential(config.whatsapp_token),
-        "phone_number_id": config.phone_number_id or "",
-        "webhook_verify_token": config.webhook_verify_token or "",
+        # Paramètres OpenWA
+        "openwa_api_url": config.openwa_api_url or "",
+        "openwa_api_key": mask_credential(config.openwa_api_key),
+        "openwa_session_id": config.openwa_session_id or "",
+        # Paramètres Gemini
         "gemini_api_key": mask_credential(config.gemini_api_key)
     })
 
 @ai_bp.route('/ai/config', methods=['POST'])
 def update_ai_config():
     """
-    Met à jour la configuration de l'IA et les identifiants.
+    Met à jour la configuration de l'IA et les identifiants de la passerelle OpenWA.
     Intègre une sécurité : si les champs d'API renvoient la forme masquée
     (ex: contient '...'), on ne modifie pas la valeur existante en BDD.
     """
     data = request.get_json() or {}
     config = AIConfig.get_config()
     
-    # 1. Mise à jour des bascules standards
+    # 1. Mise à jour des bascules standards et prompts
     if 'system_prompt' in data:
         config.system_prompt = data.get('system_prompt', '').strip()
         
     if 'auto_reply_enabled' in data:
         config.auto_reply_enabled = bool(data.get('auto_reply_enabled'))
         
-    # 2. Mise à jour sécurisée des clés d'API (sans écraser si masqué)
-    whatsapp_token = data.get('whatsapp_token', '').strip()
-    if whatsapp_token and '...' not in whatsapp_token and '*' not in whatsapp_token:
-        config.whatsapp_token = whatsapp_token
+    # 2. Mise à jour sécurisée des variables OpenWA (sans écraser si masqué)
+    openwa_api_url = data.get('openwa_api_url', '').strip()
+    if openwa_api_url:
+        config.openwa_api_url = openwa_api_url
         
-    phone_number_id = data.get('phone_number_id', '').strip()
-    if phone_number_id:
-        config.phone_number_id = phone_number_id
+    openwa_api_key = data.get('openwa_api_key', '').strip()
+    if openwa_api_key and '...' not in openwa_api_key and '*' not in openwa_api_key:
+        config.openwa_api_key = openwa_api_key
         
-    webhook_verify_token = data.get('webhook_verify_token', '').strip()
-    if webhook_verify_token:
-        config.webhook_verify_token = webhook_verify_token
+    openwa_session_id = data.get('openwa_session_id', '').strip()
+    if openwa_session_id:
+        config.openwa_session_id = openwa_session_id
         
+    # 3. Mise à jour sécurisée de la clé Gemini
     gemini_api_key = data.get('gemini_api_key', '').strip()
     if gemini_api_key and '...' not in gemini_api_key and '*' not in gemini_api_key:
         config.gemini_api_key = gemini_api_key
@@ -73,25 +75,25 @@ def update_ai_config():
         db.session.commit()
         return jsonify({
             "success": True,
-            "message": "Configuration sauvegardée avec succès.",
+            "message": "Configuration OpenWA et Gemini sauvegardée avec succès.",
             "config": {
                 "auto_reply_enabled": config.auto_reply_enabled,
                 "system_prompt": config.system_prompt,
-                "whatsapp_token": mask_credential(config.whatsapp_token),
-                "phone_number_id": config.phone_number_id,
-                "webhook_verify_token": config.webhook_verify_token,
+                "openwa_api_url": config.openwa_api_url,
+                "openwa_api_key": mask_credential(config.openwa_api_key),
+                "openwa_session_id": config.openwa_session_id,
                 "gemini_api_key": mask_credential(config.gemini_api_key)
             }
         })
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Erreur lors de la mise à jour d'AIConfig: {e}")
+        logger.error(f"Erreur lors de la mise à jour d'AIConfig pour OpenWA: {e}")
         return jsonify({"error": f"Erreur de sauvegarde : {str(e)}"}), 500
 
 @ai_bp.route('/ai/test-whatsapp', methods=['POST'])
 def test_whatsapp_api():
     """
-    Déclenche le ping test d'API WhatsApp.
+    Déclenche le ping test d'API OpenWA.
     """
     success, message = test_whatsapp_connection()
     return jsonify({

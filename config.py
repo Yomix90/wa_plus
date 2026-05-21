@@ -29,9 +29,9 @@ class Config:
     SCHEDULER_TIMEZONE = "UTC"
     
     # Configuration des APIs externes (chargement par défaut)
-    WHATSAPP_TOKEN = os.environ.get('WHATSAPP_TOKEN', '')
-    PHONE_NUMBER_ID = os.environ.get('PHONE_NUMBER_ID', '')
-    WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', '')
+    OPENWA_API_URL = os.environ.get('OPENWA_API_URL', 'https://openwa-waplus-hmvwgl-24722a-51-210-177-24.sslip.io')
+    OPENWA_API_KEY = os.environ.get('OPENWA_API_KEY', '')
+    OPENWA_SESSION_ID = os.environ.get('OPENWA_SESSION_ID', 'default')
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
     
     # Mode de l'application

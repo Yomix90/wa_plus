@@ -36,7 +36,7 @@ class Message(db.Model):
     direction = db.Column(db.String(10), nullable=False) # 'in' (reçu) ou 'out' (envoyé)
     content = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(30), default='sent', nullable=False) # 'pending', 'sent', 'delivered', 'failed'
-    meta_message_id = db.Column(db.String(100), nullable=True, index=True) # ID unique renvoyé par Meta WhatsApp
+    openwa_message_id = db.Column(db.String(100), nullable=True, index=True) # ID unique renvoyé par OpenWA
     sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def to_dict(self):
@@ -48,7 +48,7 @@ class Message(db.Model):
             'direction': self.direction,
             'content': self.content,
             'status': self.status,
-            'meta_message_id': self.meta_message_id,
+            'openwa_message_id': self.openwa_message_id,
             'sent_at': self.sent_at.isoformat()
         }
 
@@ -83,11 +83,11 @@ class AIConfig(db.Model):
     system_prompt = db.Column(db.Text, nullable=False)
     auto_reply_enabled = db.Column(db.Boolean, default=False, nullable=False)
     
-    # Stockage crypté ou direct des secrets en BDD pour modification directe par l'UI
+    # Stockage direct des secrets en BDD pour modification directe par l'UI
     # On utilisera ces champs en priorité, sinon repli sur le .env de config.py
-    whatsapp_token = db.Column(db.Text, nullable=True)
-    phone_number_id = db.Column(db.String(100), nullable=True)
-    webhook_verify_token = db.Column(db.String(100), nullable=True)
+    openwa_api_url = db.Column(db.Text, nullable=True)
+    openwa_api_key = db.Column(db.Text, nullable=True)
+    openwa_session_id = db.Column(db.String(100), nullable=True)
     gemini_api_key = db.Column(db.Text, nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -115,6 +115,35 @@ def init_db(app):
     """Initialise la base de données SQLite et crée les tables."""
     db.init_app(app)
     with app.app_context():
+        # Migration automatique de l'ancienne structure de base de données si elle existe
+        try:
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            
+            if inspector.has_table('ai_configs'):
+                columns = [col['name'] for col in inspector.get_columns('ai_configs')]
+                with db.engine.begin() as conn:
+                    if 'openwa_api_url' not in columns:
+                        conn.execute(db.text("ALTER TABLE ai_configs ADD COLUMN openwa_api_url TEXT"))
+                    if 'openwa_api_key' not in columns:
+                        conn.execute(db.text("ALTER TABLE ai_configs ADD COLUMN openwa_api_key TEXT"))
+                    if 'openwa_session_id' not in columns:
+                        conn.execute(db.text("ALTER TABLE ai_configs ADD COLUMN openwa_session_id VARCHAR(100)"))
+                    if 'gemini_api_key' not in columns:
+                        conn.execute(db.text("ALTER TABLE ai_configs ADD COLUMN gemini_api_key TEXT"))
+            
+            if inspector.has_table('messages'):
+                columns = [col['name'] for col in inspector.get_columns('messages')]
+                with db.engine.begin() as conn:
+                    if 'openwa_message_id' not in columns:
+                        conn.execute(db.text("ALTER TABLE messages ADD COLUMN openwa_message_id VARCHAR(100)"))
+                        try:
+                            conn.execute(db.text("CREATE INDEX IF NOT EXISTS ix_messages_openwa_message_id ON messages (openwa_message_id)"))
+                        except Exception:
+                            pass
+        except Exception as e:
+            app.logger.warning(f"Note de migration de base de données : {e}")
+
         db.create_all()
         # Initialise le singleton AIConfig
         AIConfig.get_config()
