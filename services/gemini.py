@@ -55,12 +55,6 @@ def generate_reply(contact_id, incoming_message):
         # Configuration du client Gemini
         genai.configure(api_key=api_key)
         
-        # Création du modèle avec instruction système
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=system_prompt
-        )
-        
         # Prompt enrichi
         prompt = (
             f"Tu discutes avec un client sur WhatsApp.{history_context}\n"
@@ -69,18 +63,34 @@ def generate_reply(contact_id, incoming_message):
             f"Sois naturel, courtois et synthétique."
         )
         
-        logger.info(f"Appel à Gemini 1.5 Flash pour le contact {contact_id}...")
-        response = model.generate_content(prompt)
+        # Boucle de repli (fallback) sur plusieurs modèles de génération
+        model_names = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-pro']
+        last_error = None
         
-        if response and response.text:
-            reply_text = response.text.strip()
-            # Nettoyer d'éventuels résidus ou préfixes
-            if reply_text.startswith("Assistant:"):
-                reply_text = reply_text.replace("Assistant:", "", 1).strip()
-            return reply_text
-        else:
-            logger.warning("Gemini a retourné une réponse vide.")
-            return "Désolé, je n'ai pas pu formuler de réponse."
+        for m_name in model_names:
+            try:
+                logger.info(f"Tentative d'appel à Gemini avec le modèle {m_name}...")
+                model = genai.GenerativeModel(
+                    model_name=m_name,
+                    system_instruction=system_prompt
+                )
+                response = model.generate_content(prompt)
+                
+                if response and response.text:
+                    reply_text = response.text.strip()
+                    # Nettoyer d'éventuels résidus ou préfixes
+                    if reply_text.startswith("Assistant:"):
+                        reply_text = reply_text.replace("Assistant:", "", 1).strip()
+                    logger.info(f"Réponse générée avec succès via {m_name} !")
+                    return reply_text
+            except Exception as e:
+                logger.warning(f"Le modèle {m_name} a échoué: {e}")
+                last_error = str(e)
+                continue
+                
+        # Si aucun modèle n'a fonctionné
+        logger.error(f"Tous les modèles Gemini ont échoué. Dernière erreur: {last_error}")
+        return "Désolé, je n'ai pas pu formuler de réponse suite à une contrainte technique."
             
     except Exception as e:
         logger.error(f"Erreur lors de la génération de réponse Gemini: {e}")
@@ -88,19 +98,25 @@ def generate_reply(contact_id, incoming_message):
 
 def test_gemini_connection(test_prompt="Bonjour, fais un test court."):
     """
-    Vérifie la validité de la clé API Gemini en envoyant une requête simple.
+    Vérifie la validité de la clé API Gemini en envoyant une requête simple avec boucle de repli.
     """
     api_key = get_gemini_api_key()
     if not api_key or api_key == 'AIza_PLACEHOLDER':
         return False, "La clé API Gemini n'est pas configurée ou est par défaut."
         
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name='gemini-1.5-flash')
-        response = model.generate_content(test_prompt)
-        if response and response.text:
-            return True, f"Connexion Gemini réussie ! Réponse test : {response.text.strip()}"
-        else:
-            return False, "Gemini a retourné un contenu vide."
-    except Exception as e:
-        return False, f"Erreur de connexion Gemini : {str(e)}"
+    model_names = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-pro']
+    last_error = None
+    
+    for m_name in model_names:
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name=m_name)
+            response = model.generate_content(test_prompt)
+            if response and response.text:
+                return True, f"Connexion Gemini réussie avec le modèle '{m_name}' ! Réponse test : {response.text.strip()}"
+        except Exception as e:
+            logger.warning(f"Le modèle de test {m_name} a échoué: {e}")
+            last_error = str(e)
+            continue
+            
+    return False, f"Erreur de connexion Gemini (Tous les modèles ont échoué). Dernière erreur : {last_error}"
