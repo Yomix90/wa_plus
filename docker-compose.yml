@@ -1,0 +1,30 @@
+# ═══════════════════════════════════════════════
+# DOCKER-COMPOSE WAPLUS — PROD/DOKPLOY
+# ═══════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: waplus_app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-cle_flask_secrete_dokploy_2026}
+      - DATABASE_URL=sqlite:////app/data/whatsapp_bulk.db
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - PHONE_NUMBER_ID=${PHONE_NUMBER_ID}
+      - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WEBHOOK_APP_SECRET=${WEBHOOK_APP_SECRET}
+      - FLASK_ENV=production
+    volumes:
+      - waplus_data:/app/data
+
+volumes:
+  waplus_data:
+    name: waplus_database_volume

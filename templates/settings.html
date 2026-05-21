@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="settings-view" class="fade-in">
+    <!-- En-tête de la page -->
+    <div class="header-container">
+        <div class="page-title">
+            <h1>Configuration & Diagnostics</h1>
+            <p>Gérez vos jetons d'accès d'API, vos règles d'auto-réponse et testez vos connexions.</p>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 360px; gap: 2rem; align-items: start;">
+        <!-- Formulaire principal de Configuration -->
+        <div class="card glass">
+            <h2 style="font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <i data-lucide="sliders" style="color: var(--accent-color);"></i>
+                Paramètres généraux
+            </h2>
+            
+            <form id="settings-form">
+                <!-- Section Réponses Automatiques -->
+                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="font-size: 0.95rem; font-weight: 600;">Réponses automatiques intelligentes</h3>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); max-width: 400px; margin-top: 0.25rem;">
+                                Si activé, l'assistant Gemini AI répondra automatiquement à tout message WhatsApp entrant.
+                            </p>
+                        </div>
+                        <label class="switch-container">
+                            <span class="switch">
+                                <input type="checkbox" id="setting-auto-reply">
+                                <span class="slider"></span>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1.25rem;">
+                        <label for="setting-prompt">Instruction Système Gemini (System Prompt)</label>
+                        <textarea class="form-control" id="setting-prompt" placeholder="Ex: Tu es un assistant commercial expert..."></textarea>
+                        <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                            Ce prompt définit le comportement de l'IA (ton, consignes, langage).
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Section Crédentiels d'APIs -->
+                <div>
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--text-primary);">Identifiants de Connexions</h3>
+                    
+                    <!-- WhatsApp Settings -->
+                    <div class="form-group">
+                        <label for="setting-whatsapp-token">WhatsApp System User Token (Jeton Meta)</label>
+                        <input type="password" class="form-control" id="setting-whatsapp-token" placeholder="EAAaBbCc123...">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="setting-phone-id">ID Numéro de Téléphone (Phone ID)</label>
+                            <input type="text" class="form-control" id="setting-phone-id" placeholder="Ex: 123456789012345">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="setting-verify-token">Verify Token Webhook (Choix libre)</label>
+                            <input type="text" class="form-control" id="setting-verify-token" placeholder="Ex: mon_token_secret_123">
+                        </div>
+                    </div>
+                    
+                    <!-- Gemini Settings -->
+                    <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <label for="setting-gemini-key">Clé d'API Google Gemini AI (GEMINI_API_KEY)</label>
+                        <input type="password" class="form-control" id="setting-gemini-key" placeholder="AIzaSy...">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                        <i data-lucide="save"></i>
+                        Sauvegarder les modifications
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Section de Diagnostics & Outils de test -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card glass">
+                <h2 style="font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem;">
+                    <i data-lucide="shield-check" style="color: var(--accent-color);"></i>
+                    Outils de Diagnostic
+                </h2>
+                
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Vérifiez instantanément la validité de vos clés d'API et de vos configurations en lançant des requêtes pings de diagnostic en direct.
+                </p>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button class="btn btn-secondary" id="btn-test-whatsapp" style="width: 100%;">
+                        <i data-lucide="message-square"></i>
+                        Tester la connexion WhatsApp
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="btn-test-gemini" style="width: 100%;">
+                        <i data-lucide="sparkles"></i>
+                        Tester l'API Gemini AI
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aide Intégration Webhook -->
+            <div class="card glass" style="padding: 1.25rem 1.5rem; font-size: 0.85rem; border-color: rgba(83, 189, 235, 0.2)">
+                <h3 style="color: var(--status-success); font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="link" style="width: 18px;"></i>
+                    Configuration du Webhook
+                </h3>
+                <p style="color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    Pour recevoir les messages clients, connectez votre console Meta Developers à l'URL suivante :
+                </p>
+                <code style="background-color: var(--bg-tertiary); padding: 0.4rem 0.6rem; border-radius: 6px; display: block; font-size: 0.8rem; border: 1px solid var(--border-color); overflow-x: auto; white-space: nowrap; margin-bottom: 0.75rem;">
+                    https://&lt;votre-domaine&gt;/webhook
+                </code>
+                <p style="color: var(--text-muted); font-size: 0.78rem;">
+                    Le "Verify Token" saisi sur Meta doit être identique à votre <strong>Verify Token Webhook</strong> configuré ci-contre.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaPlus — WhatsApp Bulk & AI Assistant</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar fixe à gauche -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="message-square" class="logo-icon animate-pulse"></i>
+                    <span>Wa<span class="highlight">Plus</span></span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="/" class="menu-item {% if active_page == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="/contacts" class="menu-item {% if active_page == 'contacts' %}active{% endif %}" id="nav-contacts">
+                    <i data-lucide="users"></i>
+                    <span>Contacts</span>
+                </a>
+                <a href="/send-bulk" class="menu-item {% if active_page == 'send-bulk' %}active{% endif %}" id="nav-send">
+                    <i data-lucide="send"></i>
+                    <span>Envoi groupé</span>
+                </a>
+                <a href="/history" class="menu-item {% if active_page == 'history' %}active{% endif %}" id="nav-history">
+                    <i data-lucide="message-circle"></i>
+                    <span>Historique</span>
+                </a>
+                <a href="/settings" class="menu-item {% if active_page == 'settings' %}active{% endif %}" id="nav-settings">
+                    <i data-lucide="settings"></i>
+                    <span>Paramètres</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span>Service Actif</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Contenu principal -->
+        <main class="main-content">
+            {% if error_404 %}
+            <div class="error-container">
+                <div class="error-card glass">
+                    <i data-lucide="alert-triangle" class="error-icon"></i>
+                    <h1>Page Introuvable (404)</h1>
+                    <p>La page que vous recherchez n'existe pas ou a été déplacée.</p>
+                    <a href="/" class="btn btn-primary">Retour au Tableau de Bord</a>
+                </div>
+            </div>
+            {% else %}
+                {% block content %}{% endblock %}
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- Conteneur de Notifications Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Script Lucide pour le rendu des icônes SVG -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Initialiser les icônes
+        lucide.createIcons();
+    </script>
+    <!-- Code Javascript Applicatif Global -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

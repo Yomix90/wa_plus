@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="send-bulk-view" class="fade-in">
+    <!-- En-tête de la page -->
+    <div class="header-container">
+        <div class="page-title">
+            <h1>Envoi en Lot (Bulk)</h1>
+            <p>Composez et planifiez vos campagnes de diffusion de messages WhatsApp.</p>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 360px; gap: 2rem; align-items: start;">
+        <!-- Formulaire de Campagne -->
+        <div class="card glass">
+            <h2 style="font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <i data-lucide="mail" style="color: var(--accent-color);"></i>
+                Créer une nouvelle campagne
+            </h2>
+            
+            <form id="bulk-form">
+                <div class="form-group">
+                    <label for="bulk-name">Nom de la campagne</label>
+                    <input type="text" class="form-control" id="bulk-name" placeholder="Ex: Promotion Eté 2026, Relance prospects" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="bulk-target-type">Cible de diffusion</label>
+                        <select class="form-control" id="bulk-target-type">
+                            <option value="all">Tous les contacts éligibles</option>
+                            <option value="group">Un groupe spécifique</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="group-select-container" style="flex: 1; display: none;">
+                        <label for="bulk-group-select">Sélectionner le groupe</label>
+                        <select class="form-control" id="bulk-group-select">
+                            <option value="">Chargement des groupes...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bulk-message">Contenu du message</label>
+                    <textarea class="form-control" id="bulk-message" placeholder="Tapez votre message ici..." required></textarea>
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                        Le message sera envoyé tel quel aux contacts ciblés qui ne se sont pas désabonnés (opt-out).
+                    </small>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label for="bulk-schedule">Planifier l'envoi (Optionnel)</label>
+                    <input type="datetime-local" class="form-control" id="bulk-schedule">
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                        Laissez vide pour envoyer immédiatement. Sinon, sélectionnez une date et heure d'envoi automatique.
+                    </small>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary btn-lg" style="padding: 0.85rem 2rem;">
+                        <i data-lucide="play"></i>
+                        Lancer la campagne
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Volet d'explications et Barre de Progression SSE -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Rappel sur les règles d'utilisation -->
+            <div class="card glass" style="padding: 1.5rem; font-size: 0.85rem; border-color: rgba(251, 191, 36, 0.2)">
+                <h3 style="color: #fbbf24; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="alert-circle" style="width: 18px;"></i>
+                    Règles d'utilisation Meta
+                </h3>
+                <ul style="margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; color: var(--text-secondary);">
+                    <li>Respectez le droit d'opt-out de vos clients : l'application filtre automatiquement les numéros marqués comme désabonnés.</li>
+                    <li>L'API Cloud WhatsApp Business impose des limites sur les messages non sollicités en dehors d'une fenêtre de 24h (Meta requiert des modèles approuvés).</li>
+                    <li>Un rate-limit automatique de <strong>1 message par seconde</strong> est configuré par défaut pour garantir la stabilité de votre ligne.</li>
+                </ul>
+            </div>
+
+            <!-- Barre de progression SSE en direct -->
+            <div id="progress-panel" class="progress-panel glass animate-pulse" style="display: none;">
+                <div class="progress-header">
+                    <span>Envoi de la campagne en cours</span>
+                    <span id="progress-text">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div class="progress-contact" id="progress-contact">Préparation...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

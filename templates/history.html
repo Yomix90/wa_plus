@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="history-view" class="fade-in">
+    <!-- En-tête de la page -->
+    <div class="header-container" style="margin-bottom: 1.5rem;">
+        <div class="page-title">
+            <h1>Historique des Conversations</h1>
+            <p>Consultez l'historique complet des messages échangés et discutez en direct.</p>
+        </div>
+        <div>
+            <a href="/api/messages/export" class="btn btn-secondary">
+                <i data-lucide="download"></i>
+                Exporter en CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Interface Chat Divisée en Deux Volets (WhatsApp Style) -->
+    <div class="chat-wrapper glass">
+        <!-- Volet de gauche : Liste des conversations actives -->
+        <div class="chat-list">
+            <div class="chat-search-bar">
+                <div style="position: relative;">
+                    <input type="text" class="form-control" id="chat-contact-search" placeholder="Rechercher une conversation..." style="padding-left: 2.25rem; font-size: 0.85rem; padding-top: 0.5rem; padding-bottom: 0.5rem; border-radius: 8px;">
+                    <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted);"></i>
+                </div>
+            </div>
+            
+            <div class="chat-items" id="chat-list-items">
+                <div style="padding: 1.5rem; text-align: center; color: var(--text-secondary);">
+                    <div class="animate-pulse">Chargement de la liste...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volet de droite : Zone de Chat active -->
+        <div class="chat-window" id="chat-window-pane">
+            <!-- État vide initial -->
+            <div class="chat-empty" id="chat-empty-state">
+                <i data-lucide="message-square"></i>
+                <h3>Sélectionnez une conversation</h3>
+                <p style="font-size: 0.85rem; max-width: 280px; margin: 0 auto;">Sélectionnez un contact dans la colonne de gauche pour consulter l'historique des échanges et lui répondre directement.</p>
+            </div>
+
+            <!-- Thread de Chat Actif -->
+            <div class="chat-window-active" id="chat-active-state" style="display: none; flex-direction: column; height: 100%;">
+                <!-- En-tête de la conversation -->
+                <div class="chat-header">
+                    <div class="chat-header-info">
+                        <h3 id="chat-header-name">Nom du contact</h3>
+                        <p id="chat-header-phone">+33 6 12 34 56 78</p>
+                    </div>
+                    <div>
+                        <span class="badge badge-success" style="font-size: 0.75rem;">Canal Actif</span>
+                    </div>
+                </div>
+
+                <!-- Messages de la conversation -->
+                <div class="chat-messages" id="chat-messages-container">
+                    <!-- Les bulles de chat s'injectent ici dynamiquement -->
+                </div>
+
+                <!-- Barre de composition rapide de réponse -->
+                <form class="chat-input-bar" id="chat-input-form">
+                    <input type="text" class="form-control" id="chat-input-text" placeholder="Rédigez votre réponse WhatsApp..." required style="border-radius: 20px; font-size: 0.9rem; padding: 0.6rem 1.25rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 42px; height: 42px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
