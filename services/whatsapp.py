@@ -93,7 +93,7 @@ def send_whatsapp_message(contact, message_text):
             return False, f"Réponse non-JSON de la passerelle (Code HTTP {response.status_code})"
         
         # D'après la spécification OpenWA, la réponse est au format { "success": true, "data": { "id": "..." } }
-        if response.status_code in (200, 201) and response_data.get('success'):
+        if response.status_code in (200, 201) and isinstance(response_data, dict) and response_data.get('success'):
             # Succès d'envoi
             msg_data = response_data.get('data', {})
             openwa_msg_id = msg_data.get('id') if isinstance(msg_data, dict) else 'unknown'
@@ -104,7 +104,11 @@ def send_whatsapp_message(contact, message_text):
             return True, openwa_msg_id
         else:
             # Erreur renvoyée par OpenWA
-            error_details = response_data.get('error', {}).get('message', 'Erreur de la passerelle OpenWA')
+            error_details = 'Erreur de la passerelle OpenWA'
+            if isinstance(response_data, dict):
+                error_details = response_data.get('error', {}).get('message', 'Erreur de la passerelle OpenWA')
+            elif isinstance(response_data, str):
+                error_details = response_data
             new_message.status = "failed"
             db.session.commit()
             logger.error(f"Erreur API OpenWA ({response.status_code}): {error_details}")
@@ -139,12 +143,21 @@ def test_whatsapp_connection():
         except ValueError:
             return False, f"La passerelle OpenWA a retourné une réponse non-JSON (Code HTTP {response.status_code}). Veuillez vérifier l'URL de votre instance."
         
-        if response.status_code == 200 and response_data.get('success'):
+        if response.status_code == 200 and isinstance(response_data, dict) and response_data.get('success'):
             status_data = response_data.get('data', {})
-            session_status = status_data.get('status', 'unknown')
+            session_status = 'unknown'
+            if isinstance(status_data, dict):
+                session_status = status_data.get('status', 'unknown')
+            elif isinstance(status_data, str):
+                session_status = status_data
             return True, f"Connexion à OpenWA réussie ! Statut de la session '{session_id}' : {session_status}"
         else:
-            error_msg = response_data.get('error', {}).get('message', 'Erreur d\'autorisation OpenWA')
+            error_msg = "Erreur d'autorisation OpenWA"
+            if isinstance(response_data, dict):
+                error_msg = response_data.get('error', {}).get('message', 'Erreur d\'autorisation OpenWA')
+            elif isinstance(response_data, str):
+                error_msg = response_data
+                
             if response.status_code == 401:
                 error_msg = "Clé d'API (X-API-Key) invalide ou manquante."
             elif response.status_code == 404:
